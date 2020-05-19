@@ -130,7 +130,9 @@ stages:
             displayName: Run InSpec Tests
             inputs:
               inspecProfilePath: $(Build.SourcesDirectory)
-              inspecArguments: $(Build.SourcesDirectory) --attrs $(Build.SourcesDirectory)/attributes.yml -t docker://$(DOCKER_CONTAINER_ID) --reporter junit:$(Build.SourcesDirectory)/results/inspec-test-results.xml
+              inspecArguments: $(Build.SourcesDirectory) --attrs $(Build.SourcesDirectory)/attributes.yml -t docker://$(DOCKER_CONTAINER_ID)
+              inspecResultsFile: $(Build.SourcesDirectory)/results/inspec-test-results.xml
+
 
           # Upload the tests results file
           - task: PublishTestResults@2
