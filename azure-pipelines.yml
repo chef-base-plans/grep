@@ -63,9 +63,31 @@ stages:
               /tmp/hab pkg export docker $(Build.SourcesDirectory)/results/$(pkg_artifact)
             displayName: Export as Docker image
 
+          # Use Bash script to source the last_docker_export.env and expose to Azure DevOps
+          # This will be a task in the Habitat suite of tasks eventually
+          - bash: |
+              source $(Build.SourcesDirectory)/results/last_docker_export.env
+
+              echo "##vso[task.setvariable variable=id]$id"
+              echo "##vso[task.setvariable variable=name]$name"
+              echo "##vso[task.setvariable variable=tags]$tags
+              echo "##vso[task.setvariable variable=name_tags]$name_tags"
+
           # Upload env files from the results dir as artifacts
           - task: PublishPipelineArtifact@1
             displayName: Upload results "env" files
             inputs:
               targetPath: $(Build.SourcesDirectory)
               artifactName: habitat-results
+
+          # Run the docker image and wait for it to stabilize
+          - bash: |
+              docker run -d --name ${id} ${name}
+              until docker exec `docker ps -f name=${id} -q` /bin/hab svc status ${name}
+              do
+                echo "Waiting for successful package status ..."
+                sleep 2
+              done
+            displayName: Run docker image
+
+          
