@@ -46,6 +46,10 @@ stages:
               habitatLastBuildEnvPath: '$(Build.SourcesDirectory)/results'
               habitatImageNamesFilename: '$(System.DefaultWorkingDirectory)/image.names'
 
+          - bash: |
+              sudo /tmp/pkg install core/hab-pkg-export-docker
+            displayName: Install Hab components
+
           # Export the built image as a docker image
           - task: vsts-habitat-pkg-export@3
             displayName: Export as Docker image
