@@ -9,6 +9,10 @@ variables:
   - name: HAB_LICENSE
     value: accept
 
+  # Set the debug level for the pipeline
+  - name: System.Debug
+    value: true
+
 stages:
   - stage: hab_export_docker
     displayName: Hab Export Docker image
@@ -89,17 +93,20 @@ stages:
           # Additionally export the ID of the running container
           - bash: |
 
+              DOCKER_EXPORT_ID=$(docker_export_id)
+              echo "DOCKER_EXPORT_ID: '${DOCKER_EXPORT_ID}'"
+
               # Only proceed if the docker_export_id has been set
-              if [ "X${docker_export_id}" == "X" ]
+              if [ "X${DOCKER_EXPORT_ID}" == "X" ]
               then
 
-                echo "##vso[task.logissue type=error;]ID of exported docker image is not set `docker_export_id`"
+                echo "##vso[task.complete result=Failed;]ID of exported docker image is not set `docker_export_id`"
               else
 
                 docker run -d --name ${docker_export_id} ${name}
 
                 # Get the id of the running docker container
-                DOCKER_CONTAINER_ID=`docker ps -f name=${docker_export_id} -q`
+                DOCKER_CONTAINER_ID=`docker ps -f name=${DOCKER_EXPORT_ID} -q`
                 until docker exec ${DOCKER_CONTAINER_ID} /bin/hab svc status ${name}
                 do
                   echo "Waiting for successful package status ..."
@@ -117,7 +124,7 @@ stages:
           - task: vsts-chef-task-exec-inspec@1
             displayName: Run InSpec Tests
             inputs:
-              inspecProfilePath: '$(System.ArtifactsDirectory)/cookbooks'
+              inspecProfilePath: $(Build.SourcesDirectory)
               inspecArguments: $(Build.SourcesDirectory) --attrs $(Build.SourcesDirectory)/attributes.yml -t docker://${DOCKER_CONTAINER_ID} --reporter junit:$(Build.SourcesDirectory)/results/inspec-test-results.xml
 
           # Upload the tests results file
