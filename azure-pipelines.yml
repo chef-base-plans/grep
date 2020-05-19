@@ -72,10 +72,11 @@ stages:
           - bash: |
               source $(Build.SourcesDirectory)/results/last_docker_export.env
 
-              echo "##vso[task.setvariable variable=id]$id"
-              echo "##vso[task.setvariable variable=name]$name"
-              echo "##vso[task.setvariable variable=tags]$tags"
-              echo "##vso[task.setvariable variable=name_tags]$name_tags"
+              echo "##vso[task.setvariable variable=id;]$id"
+              echo "##vso[task.setvariable variable=name;]$name"
+              echo "##vso[task.setvariable variable=tags;]$tags"
+              echo "##vso[task.setvariable variable=name_tags;]$name_tags"
+            displayName: Expose Habitat Export variables
 
           # Upload env files from the results dir as artifacts
           - task: PublishPipelineArtifact@1
@@ -116,5 +117,5 @@ stages:
             inputs:
               testResultsFormat: JUnit
               testResultsFile: $(Build.SourcesDirectory)/results/inspec-test-results.xml
-              
+
           
