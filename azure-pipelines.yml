@@ -51,10 +51,14 @@ stages:
             displayName: Install Hab components
 
           # Export the built image as a docker image
-          - task: vsts-habitat-pkg-export@3
+          #- task: vsts-habitat-pkg-export@3
+          #  displayName: Export as Docker image
+          #  inputs:
+          #    habitatOrigin: $(habitatServiceConnectionName)
+          #    habitatExportFormat: 'docker'
+          #    habitatPackagePath: '$(Build.SourcesDirectory)/results/$(pkg_artifact)'
+          #    habitatArguments: ''
+
+          - bash: |
+              /tmp/hab pkg export docker $(Build.SourcesDirectory)/results/$(pkg_artifact)
             displayName: Export as Docker image
-            inputs:
-              habitatOrigin: $(habitatServiceConnectionName)
-              habitatExportFormat: 'docker'
-              habitatPackagePath: '$(Build.SourcesDirectory)/results/$(pkg_artifact)'
-              habitatArguments: ''
