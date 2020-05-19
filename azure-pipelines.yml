@@ -104,7 +104,7 @@ stages:
                 echo "##vso[task.complete result=Failed;]ID of exported docker image is not set `docker_export_id`"
               else
 
-                docker run -d --name ${DOCKER_EXPORT_ID} ${PKG_NAME}
+                docker run -d -e HAB_LICENSE=accept --name ${DOCKER_EXPORT_ID} ${PKG_NAME}
 
                 docker ps
 
