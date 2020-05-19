@@ -20,6 +20,10 @@ stages:
           vmImage: ubuntu-18.04
         steps:
 
+          # Install InSpec to run the tests on the exported docker image
+          - task: vsts-chef-task-install-inspec@1
+            displayName: Install InSpec
+
           # Install Habitat to perform the build using the plan file
           - task: vsts-habitat-install@3
             displayName: Install Habitat
@@ -70,7 +74,7 @@ stages:
 
               echo "##vso[task.setvariable variable=id]$id"
               echo "##vso[task.setvariable variable=name]$name"
-              echo "##vso[task.setvariable variable=tags]$tags
+              echo "##vso[task.setvariable variable=tags]$tags"
               echo "##vso[task.setvariable variable=name_tags]$name_tags"
 
           # Upload env files from the results dir as artifacts
@@ -81,13 +85,36 @@ stages:
               artifactName: habitat-results
 
           # Run the docker image and wait for it to stabilize
+          # Additionally export the ID of the running container
           - bash: |
               docker run -d --name ${id} ${name}
-              until docker exec `docker ps -f name=${id} -q` /bin/hab svc status ${name}
+
+              # Get the id of the running docker container
+              DOCKER_CONTAINER_ID=`docker ps -f name=${id} -q`
+              until docker exec ${DOCKER_CONTAINER_ID} /bin/hab svc status ${name}
               do
                 echo "Waiting for successful package status ..."
                 sleep 2
               done
+
+              # Export the ID of the docker container as an env var
+              echo "##vso[task.setvariable variable=DOCKER_CONTAINER_ID]$DOCKER_CONTAINER_ID"
+
             displayName: Run docker image
 
+          # Execute the InSpec tests against the running docker container
+          # Create JUnit output for Azure DevOps to read
+          - task: vsts-chef-task-exec-inspec@1
+            displayName: Run InSpec Tests
+            inputs:
+              inspecProfilePath: '$(System.ArtifactsDirectory)/cookbooks'
+              inspecArguments: $(Build.SourcesDirectory) --attrs $(Build.SourcesDirectory)/attributes.yml -t docker://${DOCKER_CONTAINER_ID} --reporter junit:$(Build.SourcesDirectory)/results/inspec-test-results.xml
+
+          # Upload the tests results file
+          - task: PublishTestResults@2
+            displayName: Publish InSpec test results
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFile: $(Build.SourcesDirectory)/results/inspec-test-results.xml
+              
           
