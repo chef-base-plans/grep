@@ -62,3 +62,10 @@ stages:
           - bash: |
               /tmp/hab pkg export docker $(Build.SourcesDirectory)/results/$(pkg_artifact)
             displayName: Export as Docker image
+
+          # Upload env files from the results dir as artifacts
+          - task: PublishPipelineArtifact@1
+            displayName: Upload results "env" files
+            inputs:
+              targetPath: $(Build.SourcesDirectory)
+              artifactName: habitat-results
