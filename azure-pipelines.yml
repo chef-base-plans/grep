@@ -76,7 +76,7 @@ stages:
           - bash: |
               source $(Build.SourcesDirectory)/results/last_docker_export.env
 
-              echo "##vso[task.setvariable variable=docker_export_id;]$id"
+              echo "##vso[task.setvariable variable=id;]$id"
               echo "##vso[task.setvariable variable=name;]$name"
               echo "##vso[task.setvariable variable=tags;]$tags"
               echo "##vso[task.setvariable variable=name_tags;]$name_tags"
@@ -93,7 +93,8 @@ stages:
           # Additionally export the ID of the running container
           - bash: |
 
-              DOCKER_EXPORT_ID=$(docker_export_id)
+              DOCKER_EXPORT_ID=$(id)
+              PKG_NAME=$(name)
               echo "DOCKER_EXPORT_ID: '${DOCKER_EXPORT_ID}'"
 
               # Only proceed if the docker_export_id has been set
@@ -103,11 +104,13 @@ stages:
                 echo "##vso[task.complete result=Failed;]ID of exported docker image is not set `docker_export_id`"
               else
 
-                docker run -d --name ${docker_export_id} ${name}
+                docker run -d --name ${DOCKER_EXPORT_ID} ${PKG_NAME}
+
+                docker ps
 
                 # Get the id of the running docker container
                 DOCKER_CONTAINER_ID=`docker ps -f name=${DOCKER_EXPORT_ID} -q`
-                until docker exec ${DOCKER_CONTAINER_ID} /bin/hab svc status ${name}
+                until docker exec ${DOCKER_CONTAINER_ID} /bin/hab svc status ${PKG_NAME}
                 do
                   echo "Waiting for successful package status ..."
                   sleep 2
