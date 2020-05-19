@@ -9,6 +9,10 @@ variables:
   - name: HAB_LICENSE
     value: accept
 
+  # Accept InSpec License
+  - name: CHEF_LICENSE
+    value: accept
+
   # Set the debug level for the pipeline
   - name: System.Debug
     value: true
@@ -105,8 +109,6 @@ stages:
               else
 
                 docker run -d -e HAB_LICENSE=accept --name ${DOCKER_EXPORT_ID} ${PKG_NAME}
-
-                docker ps
 
                 # Get the id of the running docker container
                 DOCKER_CONTAINER_ID=`docker ps -f name=${DOCKER_EXPORT_ID} -q`
