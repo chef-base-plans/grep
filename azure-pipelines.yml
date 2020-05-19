@@ -47,7 +47,7 @@ stages:
               habitatImageNamesFilename: '$(System.DefaultWorkingDirectory)/image.names'
 
           - bash: |
-              sudo /tmp/pkg install core/hab-pkg-export-docker
+              sudo /tmp/hab install core/hab-pkg-export-docker
             displayName: Install Hab components
 
           # Export the built image as a docker image
