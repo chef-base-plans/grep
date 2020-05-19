@@ -137,6 +137,7 @@ stages:
             displayName: Publish InSpec test results
             inputs:
               testResultsFormat: JUnit
-              testResultsFile: $(Build.SourcesDirectory)/results/inspec-test-results.xml
+              testResultsFiles: 'inspec-test-results.xml'
+              searchFolder: '$(Build.SourcesDirectory)/results'
 
           
