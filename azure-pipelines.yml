@@ -14,7 +14,7 @@ resources:
   repositories:
     - repository: plan_builder
       type: github
-      # endpoint: chef-base-plans
+      endpoint: chef-base-plans
       name: chef-base-plans/plan-builder
 
 # Execute the stages from the main pipeline template
