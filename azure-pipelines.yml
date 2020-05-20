@@ -1,145 +1,22 @@
-# Pipeline file for Azure DevOps
+# Stub pipeline file to build grep package
+#
+# It will checkout the plan-builder repository and then run the pipeline
+# file from there. This is so that the main pipeline file can be managed
+# centrally so that any necessary changes are reflected withouth having 
+# to modify the pipeline file in _all_ repositories
+
 name: 0.0$(Rev:.r)
 
-variables:
-  - name: habitatServiceConnectionName
-    value: "Habitat - russellseymour"
+# Configure the resources, in this case it is the plan-builder repo which
+# contains the main pipeline file to run
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=azure-devops
+resources:
+  repositories:
+    - repository: plan_builder
+      type: github
+      # endpoint: chef-base-plans
+      name: chef-base-plans/plan-builder
 
-  # Accept the habitat license
-  - name: HAB_LICENSE
-    value: accept
-
-  # Accept InSpec License
-  - name: CHEF_LICENSE
-    value: accept
-
-  # Set the debug level for the pipeline
-  - name: System.Debug
-    value: true
-
+# Execute the stages from the main pipeline template
 stages:
-  - stage: hab_export_docker
-    displayName: Hab Export Docker image
-    jobs:
-
-      - job: build
-        displayName: Execute Habitat Plan
-        pool:
-          vmImage: ubuntu-18.04
-        steps:
-
-          # Install InSpec to run the tests on the exported docker image
-          - task: vsts-chef-task-install-inspec@1
-            displayName: Install InSpec
-
-          # Install Habitat to perform the build using the plan file
-          - task: vsts-habitat-install@3
-            displayName: Install Habitat
-          
-          # Write out signing keys, revisions and set the HAB_ORIGIN using the named service connection
-          - task: vsts-habitat-signing-key@3
-            displayName: Configure Habitat Environment
-            inputs:
-              habitatOrigin: $(habitatServiceConnectionName)
-              taskAction: 'install'          
-
-          # Build the package
-          - task: vsts-habitat-build@3
-            displayName: Build Habitat Package
-            inputs:
-              habitatOrigin: $(habitatServiceConnectionName)
-              habitatSrcPath: $(Build.SourcesDirectory)
-              habitatPlanContext: .
-
-          # Expose the build env vars to they can be used by the rest of the pipeline
-          - task: vsts-habitat-expose-habitat-build-vars@3
-            displayName: Expose Habitat build variables
-            inputs:
-              habitatLastBuildEnvPath: '$(Build.SourcesDirectory)/results'
-              habitatImageNamesFilename: '$(System.DefaultWorkingDirectory)/image.names'
-
-          - bash: |
-              sudo /tmp/hab install core/hab-pkg-export-docker
-            displayName: Install Hab components
-
-          # Export the built image as a docker image
-          #- task: vsts-habitat-pkg-export@3
-          #  displayName: Export as Docker image
-          #  inputs:
-          #    habitatOrigin: $(habitatServiceConnectionName)
-          #    habitatExportFormat: 'docker'
-          #    habitatPackagePath: '$(Build.SourcesDirectory)/results/$(pkg_artifact)'
-          #    habitatArguments: ''
-
-          - bash: |
-              /tmp/hab pkg export docker $(Build.SourcesDirectory)/results/$(pkg_artifact)
-            displayName: Export as Docker image
-
-          # Use Bash script to source the last_docker_export.env and expose to Azure DevOps
-          # This will be a task in the Habitat suite of tasks eventually
-          - bash: |
-              source $(Build.SourcesDirectory)/results/last_docker_export.env
-
-              echo "##vso[task.setvariable variable=id;]$id"
-              echo "##vso[task.setvariable variable=name;]$name"
-              echo "##vso[task.setvariable variable=tags;]$tags"
-              echo "##vso[task.setvariable variable=name_tags;]$name_tags"
-            displayName: Expose Habitat Export variables
-
-          # Upload env files from the results dir as artifacts
-          - task: PublishPipelineArtifact@1
-            displayName: Upload results "env" files
-            inputs:
-              targetPath: $(Build.SourcesDirectory)
-              artifactName: habitat-results
-
-          # Run the docker image and wait for it to stabilize
-          # Additionally export the ID of the running container
-          - bash: |
-
-              DOCKER_EXPORT_ID=$(id)
-              PKG_NAME=$(name)
-              echo "DOCKER_EXPORT_ID: '${DOCKER_EXPORT_ID}'"
-
-              # Only proceed if the docker_export_id has been set
-              if [ "X${DOCKER_EXPORT_ID}" == "X" ]
-              then
-
-                echo "##vso[task.complete result=Failed;]ID of exported docker image is not set `docker_export_id`"
-              else
-
-                docker run -d -e HAB_LICENSE=accept --name ${DOCKER_EXPORT_ID} ${PKG_NAME}
-
-                # Get the id of the running docker container
-                DOCKER_CONTAINER_ID=`docker ps -f name=${DOCKER_EXPORT_ID} -q`
-                until docker exec ${DOCKER_CONTAINER_ID} /bin/hab svc status ${PKG_NAME}
-                do
-                  echo "Waiting for successful package status ..."
-                  sleep 2
-                done
-
-                # Export the ID of the docker container as an env var
-                echo "##vso[task.setvariable variable=DOCKER_CONTAINER_ID]$DOCKER_CONTAINER_ID"
-              fi
-
-            displayName: Run docker image
-
-          # Execute the InSpec tests against the running docker container
-          # Create JUnit output for Azure DevOps to read
-          - task: vsts-chef-task-exec-inspec@1
-            displayName: Run InSpec Tests
-            inputs:
-              inspecProfilePath: $(Build.SourcesDirectory)
-              inspecArguments: $(Build.SourcesDirectory) --attrs $(Build.SourcesDirectory)/attributes.yml -t docker://$(DOCKER_CONTAINER_ID)
-              inspecResultsFile: $(Build.SourcesDirectory)/results/inspec-test-results.xml
-
-
-          # Upload the tests results file
-          - task: PublishTestResults@2
-            displayName: Publish InSpec test results
-            inputs:
-              testResultsFormat: JUnit
-              testResultsFiles: 'inspec-test-results.xml'
-              searchFolder: '$(Build.SourcesDirectory)/results'
-
-          
+  - template: azure-pipelines.yml@plan_builder
