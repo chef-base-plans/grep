@@ -2,7 +2,7 @@
 # shellcheck disable=SC2209
 pkg_name=grep
 pkg_origin=core
-pkg_version=3.4
+pkg_version=3.6
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
 pkg_description="\
 Grep searches one or more input files for lines containing a match to a \
@@ -11,7 +11,7 @@ specified pattern. By default, Grep outputs the matching lines.\
 pkg_upstream_url="https://www.gnu.org/software/grep/"
 pkg_license=('GPL-3.0-or-later')
 pkg_source="http://ftp.gnu.org/gnu/$pkg_name/${pkg_name}-${pkg_version}.tar.xz"
-pkg_shasum="58e6751c41a7c25bfc6e9363a41786cff3ba5709cf11d5ad903cf7cce31cc3fb"
+pkg_shasum="667e15e8afe189e93f9f21a7cd3a7b3f776202f417330b248c2ad4f997d9373e"
 pkg_deps=(
   core/glibc
   core/pcre
